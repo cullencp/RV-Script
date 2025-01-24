@@ -39,7 +39,7 @@ def generate_rv_forms(input_file, output_file):
         min_range = format_value(row[13])         # Column N
         max_range = format_value(row[14])         # Column O
         unit = format_value(row[15])              # Column P
-        order_code = format_value(row[7])         # Column H (Order Code)
+        order_code = format_value(row[9])         # Column J (Order Code)
 
         # Create a new sheet for each instrument
         rv_form_name = f"RV{str(index).zfill(2)}"
