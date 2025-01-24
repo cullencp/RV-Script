@@ -9,7 +9,7 @@ def generate_rv_forms(input_file, output_file):
 
     # Get the sheets
     sheet1 = wb[wb.sheetnames[0]]  # Parent data sheet (Sheet 1)
-    template_sheet = wb["Sheet3"]  # Template (Sheet 3)
+    template_sheet = wb["RV Instrument  SUB-TF-01"]  # Template (Sheet 3)
 
     # User inputs
     project = input("Enter Project Name: ")
@@ -68,7 +68,7 @@ def generate_rv_forms(input_file, output_file):
     wb.save(output_file)
 
 # Usage
-input_file = "input165.xlsx"  # Replace with your input file
-output_file = "output165.xlsx"  # Replace with your desired output file
+input_file = "input.xlsx"  # Replace with your input file
+output_file = "output.xlsx"  # Replace with your desired output file
 generate_rv_forms(input_file, output_file)
 
