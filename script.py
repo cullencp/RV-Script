@@ -125,10 +125,15 @@ def add_template_to_file(input_file, template_type):
     input_wb = openpyxl.load_workbook(input_file)
     template_wb = openpyxl.load_workbook(template_path)
 
-    # Copy the first sheet from the template workbook
+    # Copy the content of the template sheet into a new sheet in the input workbook
     template_sheet = template_wb.active
-    new_sheet = input_wb.copy_worksheet(template_sheet)
-    new_sheet.title = f"{template_type} Template"
+    new_sheet = input_wb.create_sheet(title=f"{template_type} Template")
+
+    for row in template_sheet.iter_rows():
+        for cell in row:
+            new_sheet[cell.coordinate].value = cell.value
+            if cell.has_style:
+                new_sheet[cell.coordinate]._style = cell._style
 
     # Save the updated workbook
     input_wb.save(input_file)
