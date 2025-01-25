@@ -62,31 +62,12 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                     max_range = format_value(row[14])         # Column O
                     unit = format_value(row[15])              # Column P
                     order_code = format_value(row[9])         # Column J (Order Code)
-                else:  # Valve template mapping
-                    valve_tag = format_value(row[4])              # Column E (Valve Tag)
-                    valve_make_model = format_value(row[6])       # Column G (Valve Make / Model Number)
-                    actuator_make_model = format_value(row[7])    # Column H (Actuator Make / Model Number)
-                    process_connection = format_value(row[9])     # Column J (Process Connection)
-                    line_size = format_value(row[14])             # Column O (Line Size)
-                    control_signal = format_value(row[16])        # Column Q (Control Signal)
-                    dial_setting = format_value(row[13])          # Column N (Dial Setting)
-                    flow_rate = format_value(row[11])             # Column L (Flow Rate)
 
-                # Create a new sheet for each instrument/valve
-                rv_form_name = f"RV{str(index).zfill(2)}"
-                new_sheet = wb.copy_worksheet(template_sheet)
-                new_sheet.title = rv_form_name
-
-                # Populate static fields
-                new_sheet["A5"] = project
-                new_sheet["E5"] = client
-                new_sheet["A7"] = reference_document
-                new_sheet["E7"] = document_revision
-                new_sheet["I5"] = current_date
-                new_sheet["I7"] = rv_form_name
-
-                if template_type == "Instrument":
                     # Populate dynamic fields for the Instrument Template
+                    new_sheet = wb.copy_worksheet(template_sheet)
+                    rv_form_name = f"RV{str(index).zfill(2)}"
+                    new_sheet.title = rv_form_name
+
                     new_sheet["A11"] = instrument_tag
                     new_sheet["C11"] = manufacturer
                     new_sheet["E11"] = model
@@ -99,7 +80,20 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                     new_sheet["G11"] = order_code
                     new_sheet["I14"] = "N/A"
                 else:
+                    valve_tag = format_value(row[4])              # Column E (Valve Tag)
+                    valve_make_model = format_value(row[6])       # Column G (Valve Make / Model Number)
+                    actuator_make_model = format_value(row[7])    # Column H (Actuator Make / Model Number)
+                    process_connection = format_value(row[9])     # Column J (Process Connection)
+                    line_size = format_value(row[14])             # Column O (Line Size)
+                    control_signal = format_value(row[16])        # Column Q (Control Signal)
+                    dial_setting = format_value(row[13])          # Column N (Dial Setting)
+                    flow_rate = format_value(row[11])             # Column L (Flow Rate)
+
                     # Populate dynamic fields for the Valve Template
+                    new_sheet = wb.copy_worksheet(template_sheet)
+                    rv_form_name = f"RV{str(index).zfill(2)}"
+                    new_sheet.title = rv_form_name
+
                     new_sheet["A11"] = valve_tag
                     new_sheet["C11"] = valve_make_model
                     new_sheet["F11"] = actuator_make_model
@@ -109,9 +103,17 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                     new_sheet["F15"] = dial_setting
                     new_sheet["I15"] = flow_rate
 
+                # Populate static fields for both templates
+                new_sheet["A5"] = project
+                new_sheet["E5"] = client
+                new_sheet["A7"] = reference_document
+                new_sheet["E7"] = document_revision
+                new_sheet["I5"] = current_date
+                new_sheet["I7"] = rv_form_name
+
                 # Apply alignment and font size to all populated cells
                 font = Font(size=10)  # Slightly smaller font size
-                for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "F11", "A15", "B15", "D13", "F15", "I15"]:
+                for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11", "A14", "B14", "D14", "F14", "G14", "H14", "G11", "I14", "F11", "A15", "B15", "D13", "F15", "I15"]:
                     cell = new_sheet[cell_ref]
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
                     cell.font = font
@@ -232,8 +234,8 @@ def main():
     progress_bar = ttk.Progressbar(root, variable=progress_var, maximum=100)
     progress_bar.grid(row=10, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
-    # Footer with Subnet Website Reference
-    tk.Label(root, text="© 2025 Subnet Ltd. All rights reserved.", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=11, column=0, columnspan=3, pady=(10, 0))
+    # Footer
+    tk.Label(root, text="© 2025 Subnet Ltd. All rights reserved.", bg="#ffffff", fg="#333333", font=("Arial", 9)).grid(row=11, column=0, columnspan=3, pady=(10, 0))
 
     root.mainloop()
 
