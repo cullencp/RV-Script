@@ -1,6 +1,6 @@
 import openpyxl
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment
+from openpyxl.styles import Alignment, Font
 from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -13,6 +13,14 @@ def get_sheet_by_partial_name(wb, partial_name):
         if partial_name.lower() in sheet.lower():
             return sheet
     raise ValueError(f"Sheet with partial name '{partial_name}' not found.")
+
+def format_value(value):
+    """Format the value with first letter capitalized unless it's a full code."""
+    if value is None or (isinstance(value, str) and value.strip().lower() == "n/a"):
+        return "N/A"
+    if isinstance(value, str) and not any(char.islower() for char in value):  # Check if it's a full code
+        return value
+    return value.capitalize() if isinstance(value, str) else value
 
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, template_type, progress_var, log_file):
     try:
@@ -42,12 +50,6 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
 
             # Loop through rows in Sheet 1 starting at the user-defined row
             for index, row in enumerate(sheet1.iter_rows(min_row=start_row, values_only=True), start=1):
-                # Function to handle values and ensure uppercase "N/A"
-                def format_value(value):
-                    if value is None or (isinstance(value, str) and value.strip().lower() == "n/a"):
-                        return "N/A"
-                    return str(value).upper() if isinstance(value, str) else value
-
                 # Get the data from the row based on template type
                 if template_type == "Instrument":
                     instrument_tag = format_value(row[1])  # Column B
@@ -98,10 +100,12 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                 new_sheet["G11"] = order_code
                 new_sheet["I14"] = "N/A"
 
-                # Apply alignment to all populated cells
+                # Apply alignment and font size to all populated cells
+                font = Font(size=10)  # Slightly smaller font size
                 for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11", "A14", "B14", "D14", "F14", "G14", "H14", "I14", "G11"]:
                     cell = new_sheet[cell_ref]
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                    cell.font = font
 
                 # Log the processed RV form
                 log.write(f"Processed: {rv_form_name}\n")
@@ -213,13 +217,17 @@ def main():
     tk.Label(root, text="Starting Row (Auto-Detect if Blank):", bg="#00274d", fg="white").grid(row=8, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=start_row_var, width=50).grid(row=8, column=1, padx=5, pady=5)
 
-    tk.Button(root, text="Generate RV Forms", command=generate_forms).grid(row=9, column=0, columnspan=3, pady=10)
+    tk.Button(root, text="Generate RV Forms", command=generate_forms, bg="#f26522", fg="white", font=("Arial", 12, "bold")).grid(row=9, column=0, columnspan=3, pady=15)
 
     # Progress Bar
     progress_bar = ttk.Progressbar(root, variable=progress_var, maximum=100)
-    progress_bar.grid(row=10, column=0, columnspan=3, padx=5, pady=10, sticky="ew")
+    progress_bar.grid(row=10, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+
+    # Footer with Subnet Website Reference
+    tk.Label(root, text="© 2025 Subnet Ltd. All rights reserved.", bg="#00274d", fg="white", font=("Arial", 10)).grid(row=11, column=0, columnspan=3, pady=(10, 0))
 
     root.mainloop()
 
 if __name__ == "__main__":
     main()
+
