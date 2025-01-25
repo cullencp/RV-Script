@@ -171,7 +171,7 @@ def main():
 
     root = tk.Tk()
     root.title("RV Form Generator")
-    root.configure(bg="#00274d")  # Background color matching the logo
+    root.configure(bg="#ffffff")  # Set background to white for a clean look
 
     # Variables
     input_file_var = tk.StringVar()
@@ -186,45 +186,45 @@ def main():
 
     # Add the logo to the GUI
     logo_image = PhotoImage(file="C:\\Users\\PC\\Desktop\\RV-Script\\subnetlogo.png")  # Adjust the path as needed
-    logo_label = tk.Label(root, image=logo_image, bg="#00274d")
+    logo_label = tk.Label(root, image=logo_image, bg="#ffffff")
     logo_label.grid(row=0, column=0, columnspan=3, pady=(10, 20))  # Adjust padding for spacing
 
     # GUI Layout
-    tk.Label(root, text="Input File:", bg="#00274d", fg="white").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Input File:", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=1, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=input_file_var, width=50).grid(row=1, column=1, padx=5, pady=5)
-    tk.Button(root, text="Browse", command=browse_input_file).grid(row=1, column=2, padx=5, pady=5)
+    tk.Button(root, text="Browse", command=browse_input_file, bg="#4CAF50", fg="#ffffff", font=("Arial", 10)).grid(row=1, column=2, padx=5, pady=5)
 
-    tk.Label(root, text="Output Location:", bg="#00274d", fg="white").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Output Location:", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=2, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=output_folder_var, width=50).grid(row=2, column=1, padx=5, pady=5)
-    tk.Button(root, text="Browse", command=browse_output_location).grid(row=2, column=2, padx=5, pady=5)
+    tk.Button(root, text="Browse", command=browse_output_location, bg="#4CAF50", fg="#ffffff", font=("Arial", 10)).grid(row=2, column=2, padx=5, pady=5)
 
-    tk.Label(root, text="Template Type:", bg="#00274d", fg="white").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Template Type:", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=3, column=0, padx=5, pady=5, sticky="e")
     template_dropdown = ttk.Combobox(root, textvariable=template_type_var, values=["Instrument", "Valve"], state="readonly")
     template_dropdown.grid(row=3, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Project Name:", bg="#00274d", fg="white").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Project Name:", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=4, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=project_var, width=50).grid(row=4, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Client Name:", bg="#00274d", fg="white").grid(row=5, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Client Name:", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=5, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=client_var, width=50).grid(row=5, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Reference Document:", bg="#00274d", fg="white").grid(row=6, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Reference Document:", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=6, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=reference_var, width=50).grid(row=6, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Document Revision:", bg="#00274d", fg="white").grid(row=7, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Document Revision:", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=7, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=revision_var, width=50).grid(row=7, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Starting Row (Auto-Detect if Blank):", bg="#00274d", fg="white").grid(row=8, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Starting Row (Auto-Detect if Blank):", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=8, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=start_row_var, width=50).grid(row=8, column=1, padx=5, pady=5)
 
-    tk.Button(root, text="Generate RV Forms", command=generate_forms, bg="#f26522", fg="white", font=("Arial", 12, "bold")).grid(row=9, column=0, columnspan=3, pady=15)
+    tk.Button(root, text="Generate RV Forms", command=generate_forms, bg="#4CAF50", fg="#ffffff", font=("Arial", 12, "bold")).grid(row=9, column=0, columnspan=3, pady=15)
 
     # Progress Bar
     progress_bar = ttk.Progressbar(root, variable=progress_var, maximum=100)
     progress_bar.grid(row=10, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
     # Footer with Subnet Website Reference
-    tk.Label(root, text="© 2025 Subnet Ltd. All rights reserved.", bg="#00274d", fg="white", font=("Arial", 10)).grid(row=11, column=0, columnspan=3, pady=(10, 0))
+    tk.Label(root, text="© 2025 Subnet Ltd. All rights reserved.", bg="#ffffff", fg="#333333", font=("Arial", 10)).grid(row=11, column=0, columnspan=3, pady=(10, 0))
 
     root.mainloop()
 
