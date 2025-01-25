@@ -15,12 +15,12 @@ def get_sheet_by_partial_name(wb, partial_name):
     raise ValueError(f"Sheet with partial name '{partial_name}' not found.")
 
 def format_value(value):
-    """Format the value with first letter capitalized unless it's a full code."""
+    """Format the value in uppercase."""
     if value is None or (isinstance(value, str) and value.strip().lower() == "n/a"):
         return "N/A"
-    if isinstance(value, str) and not any(char.islower() for char in value):  # Check if it's a full code
-        return value
-    return value.capitalize() if isinstance(value, str) else value
+    if isinstance(value, str):
+        return value.upper()
+    return value
 
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, template_type, progress_var, log_file):
     try:
@@ -112,7 +112,7 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                 new_sheet["I7"] = rv_form_name
 
                 # Apply alignment and font size to all populated cells
-                font = Font(size=10)  # Slightly smaller font size
+                font = Font(size=11)  # Size 11 for all text
                 for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11", "A14", "B14", "D14", "F14", "G14", "H14", "G11", "I14", "F11", "A15", "B15", "D13", "F15", "I15"]:
                     cell = new_sheet[cell_ref]
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
