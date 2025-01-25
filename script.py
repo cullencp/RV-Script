@@ -196,7 +196,7 @@ def main():
     progress_var = tk.DoubleVar()
 
     # Add the logo to the GUI
-    logo_image = PhotoImage(file="/mnt/data/subnetlogo.png")  # Adjust the path as needed
+    logo_image = PhotoImage(file="C:\\Users\\PC\\Desktop\\RV-Script\\subnetlogo.png")  # Adjust the path as needed
     logo_label = tk.Label(root, image=logo_image, bg="#ffffff")
     logo_label.grid(row=0, column=0, columnspan=3, pady=(10, 20))  # Adjust padding for spacing
 
