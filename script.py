@@ -6,7 +6,6 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
 import os
-from openpyxl.drawing.image import Image
 from tkinter import PhotoImage
 
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, progress_var, log_file):
@@ -17,10 +16,6 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
         # Get the sheets
         sheet1 = wb[wb.sheetnames[0]]  # Parent data sheet (Sheet 1)
         template_sheet = wb["RV Instrument  SUB-TF-01"]  # Template (Sheet 3)
-
-        # Load the logo image
-        logo = Image("C:\\Users\\PC\\Desktop\\RV-Script\\subnetlogo.png")  # Path to the company logo
-        logo.anchor = "E1"  # Position the logo in the center top of the template
 
         # Current date in the required format
         current_date = datetime.now().strftime("%d %b %Y")
@@ -58,9 +53,6 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                 rv_form_name = f"RV{str(index).zfill(2)}"
                 new_sheet = wb.copy_worksheet(template_sheet)
                 new_sheet.title = rv_form_name
-
-                # Insert the logo into the new sheet
-                new_sheet.add_image(logo)
 
                 # Populate static fields
                 new_sheet["A5"] = project
@@ -197,6 +189,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
