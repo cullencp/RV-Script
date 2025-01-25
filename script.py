@@ -131,9 +131,15 @@ def add_template_to_file(input_file, template_type):
 
     for row in template_sheet.iter_rows():
         for cell in row:
-            new_sheet[cell.coordinate].value = cell.value
-            if cell.has_style:
-                new_sheet[cell.coordinate]._style = cell._style
+            new_cell = new_sheet[cell.coordinate]
+            new_cell.value = cell.value
+            if cell.has_style:  # Copy styles, fonts, and alignment
+                new_cell.font = cell.font
+                new_cell.border = cell.border
+                new_cell.fill = cell.fill
+                new_cell.number_format = cell.number_format
+                new_cell.protection = cell.protection
+                new_cell.alignment = cell.alignment
 
     # Save the updated workbook
     input_wb.save(input_file)
@@ -241,4 +247,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
