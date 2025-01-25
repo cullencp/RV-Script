@@ -13,8 +13,8 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
         # Load the workbook
         wb = openpyxl.load_workbook(input_file)
 
-        # Get the dynamically added template sheet
-        template_sheet = wb[f"{template_type} Template"]
+        # Get the pre-loaded template sheet
+        template_sheet = wb["RV Instrument  SUB-TF-01"] if template_type == "Instrument" else wb["RV Valve SUB-TF-02"]
 
         # Current date in the required format
         current_date = datetime.now().strftime("%d %b %Y")
@@ -110,40 +110,6 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             log.write(f"Error: {str(e)}\n")
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-def add_template_to_file(input_file, template_type):
-    # Adjust the template file names based on type
-    template_map = {
-        "Instrument": "InstrumentTemplate3.0.xlsx",
-        "Valve": "ValveTemplate3.0.xlsx"
-    }
-    template_path = template_map.get(template_type)
-
-    if not template_path or not os.path.exists(template_path):
-        raise FileNotFoundError(f"Template file '{template_path}' not found in the script directory.")
-
-    # Load the input workbook and the template workbook
-    input_wb = openpyxl.load_workbook(input_file)
-    template_wb = openpyxl.load_workbook(template_path)
-
-    # Copy the content of the template sheet into a new sheet in the input workbook
-    template_sheet = template_wb.active
-    new_sheet = input_wb.create_sheet(title=f"{template_type} Template")
-
-    for row in template_sheet.iter_rows():
-        for cell in row:
-            new_cell = new_sheet[cell.coordinate]
-            new_cell.value = cell.value
-            if cell.has_style:  # Copy styles, fonts, and alignment
-                new_cell.font = cell.font
-                new_cell.border = cell.border
-                new_cell.fill = cell.fill
-                new_cell.number_format = cell.number_format
-                new_cell.protection = cell.protection
-                new_cell.alignment = cell.alignment
-
-    # Save the updated workbook
-    input_wb.save(input_file)
-
 def auto_detect_start_row(sheet):
     """Automatically detect the starting row for instruments based on the Instrument Tag column."""
     for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_col=2, values_only=True), start=1):
@@ -182,7 +148,6 @@ def main():
         log_file = os.path.join(output_folder, "rv_generator_log.txt")
 
         try:
-            add_template_to_file(input_file, template_type)
             generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, int(start_row), template_type, progress_var, log_file)
         except Exception as e:
             with open(log_file, "a") as log:
@@ -247,5 +212,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
