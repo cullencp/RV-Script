@@ -8,13 +8,24 @@ from tkinter import ttk
 import os
 from tkinter import PhotoImage
 
+def get_sheet_by_partial_name(wb, partial_name):
+    for sheet in wb.sheetnames:
+        if partial_name.lower() in sheet.lower():
+            return sheet
+    raise ValueError(f"Sheet with partial name '{partial_name}' not found.")
+
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, template_type, progress_var, log_file):
     try:
         # Load the workbook
         wb = openpyxl.load_workbook(input_file)
 
-        # Get the pre-loaded template sheet
-        template_sheet = wb["RV Instrument  SUB-TF-01"] if template_type == "Instrument" else wb["RV Valve SUB-TF-02"]
+        # Get the pre-loaded template sheet dynamically
+        if template_type == "Instrument":
+            template_sheet_name = get_sheet_by_partial_name(wb, "RV Instrument  SUB-TF-01")
+        else:
+            template_sheet_name = get_sheet_by_partial_name(wb, "RV Valve SUB-TF-02")
+
+        template_sheet = wb[template_sheet_name]
 
         # Current date in the required format
         current_date = datetime.now().strftime("%d %b %Y")
@@ -212,6 +223,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
