@@ -7,6 +7,7 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk
 import os
 from openpyxl.drawing.image import Image
+from tkinter import PhotoImage
 
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, progress_var, log_file):
     try:
@@ -18,7 +19,7 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
         template_sheet = wb["RV Instrument  SUB-TF-01"]  # Template (Sheet 3)
 
         # Load the logo image
-        logo = Image("/mnt/data/subnetlogo.png")  # Path to the company logo
+        logo = Image("C:\\Users\\PC\\Desktop\\RV-Script\\subnetlogo.png")  # Path to the company logo
         logo.anchor = "E1"  # Position the logo in the center top of the template
 
         # Current date in the required format
@@ -161,35 +162,41 @@ def main():
     start_row_var = tk.StringVar()
     progress_var = tk.DoubleVar()
 
+    # Add the logo to the GUI
+    logo_image = PhotoImage(file="C:\\Users\\PC\\Desktop\\RV-Script\\subnetlogo.png")  # Adjust the path as needed
+    logo_label = tk.Label(root, image=logo_image, bg="#00274d")
+    logo_label.grid(row=0, column=0, columnspan=3, pady=(10, 20))  # Adjust padding for spacing
+
     # GUI Layout
-    tk.Label(root, text="Input File:", bg="#00274d", fg="white").grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=input_file_var, width=50).grid(row=0, column=1, padx=5, pady=5)
-    tk.Button(root, text="Browse", command=browse_input_file).grid(row=0, column=2, padx=5, pady=5)
+    tk.Label(root, text="Input File:", bg="#00274d", fg="white").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    tk.Entry(root, textvariable=input_file_var, width=50).grid(row=1, column=1, padx=5, pady=5)
+    tk.Button(root, text="Browse", command=browse_input_file).grid(row=1, column=2, padx=5, pady=5)
 
-    tk.Label(root, text="Project Name:", bg="#00274d", fg="white").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=project_var, width=50).grid(row=1, column=1, padx=5, pady=5)
+    tk.Label(root, text="Project Name:", bg="#00274d", fg="white").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+    tk.Entry(root, textvariable=project_var, width=50).grid(row=2, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Client Name:", bg="#00274d", fg="white").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=client_var, width=50).grid(row=2, column=1, padx=5, pady=5)
+    tk.Label(root, text="Client Name:", bg="#00274d", fg="white").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+    tk.Entry(root, textvariable=client_var, width=50).grid(row=3, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Reference Document:", bg="#00274d", fg="white").grid(row=3, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=reference_var, width=50).grid(row=3, column=1, padx=5, pady=5)
+    tk.Label(root, text="Reference Document:", bg="#00274d", fg="white").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+    tk.Entry(root, textvariable=reference_var, width=50).grid(row=4, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Document Revision:", bg="#00274d", fg="white").grid(row=4, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=revision_var, width=50).grid(row=4, column=1, padx=5, pady=5)
+    tk.Label(root, text="Document Revision:", bg="#00274d", fg="white").grid(row=5, column=0, padx=5, pady=5, sticky="e")
+    tk.Entry(root, textvariable=revision_var, width=50).grid(row=5, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Starting Row (Auto-Detect if Blank):", bg="#00274d", fg="white").grid(row=5, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=start_row_var, width=50).grid(row=5, column=1, padx=5, pady=5)
+    tk.Label(root, text="Starting Row (Auto-Detect if Blank):", bg="#00274d", fg="white").grid(row=6, column=0, padx=5, pady=5, sticky="e")
+    tk.Entry(root, textvariable=start_row_var, width=50).grid(row=6, column=1, padx=5, pady=5)
 
-    tk.Button(root, text="Generate RV Forms", command=generate_forms).grid(row=6, column=0, columnspan=3, pady=10)
+    tk.Button(root, text="Generate RV Forms", command=generate_forms).grid(row=7, column=0, columnspan=3, pady=10)
 
     # Progress Bar
     progress_bar = ttk.Progressbar(root, variable=progress_var, maximum=100)
-    progress_bar.grid(row=7, column=0, columnspan=3, padx=5, pady=10, sticky="ew")
+    progress_bar.grid(row=8, column=0, columnspan=3, padx=5, pady=10, sticky="ew")
 
     root.mainloop()
 
 if __name__ == "__main__":
     main()
+
 
 

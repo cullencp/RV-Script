@@ -1,0 +1,8 @@
+Error: You must install Pillow to fetch image objects
+Error: You must install Pillow to fetch image objects
+Error: You must install Pillow to fetch image objects
+Error: You must install Pillow to fetch image objects
+Error: You must install Pillow to fetch image objects
+Error: You must install Pillow to fetch image objects
+Error: [Errno 2] No such file or directory: '/mnt/data/subnetlogo.png'
+Error: [Errno 2] No such file or directory: '/mnt/data/subnetlogo.png'
