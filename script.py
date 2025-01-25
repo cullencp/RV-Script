@@ -35,8 +35,8 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
 
         template_sheet = wb[template_sheet_name]
 
-        # Current date in the required format
-        current_date = datetime.now().strftime("%d %b %Y")
+        # Current date in the required format with uppercase month
+        current_date = datetime.now().strftime("%d %b %Y").upper()
 
         # Open log file
         with open(log_file, "a") as log:
