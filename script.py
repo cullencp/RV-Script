@@ -4,6 +4,7 @@ from openpyxl.styles import Alignment
 from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
+from tkinter import ttk
 
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row):
     try:
@@ -75,6 +76,13 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
+def auto_detect_start_row(sheet):
+    """Automatically detect the starting row for instruments based on the Instrument Tag column."""
+    for row in sheet.iter_rows(min_row=1, max_col=2, values_only=True):
+        if row[1]:  # Check if the second column (Instrument Tag) has a value
+            return row[0]
+    return 6  # Default to row 6 if no valid row is found
+
 # GUI Implementation
 def main():
     def browse_input_file():
@@ -94,15 +102,19 @@ def main():
         document_revision = revision_var.get()
         start_row = start_row_var.get()
 
-        if not input_file or not output_file or not project or not client or not reference_document or not document_revision or not start_row:
+        if not input_file or not output_file or not project or not client or not reference_document or not document_revision:
             messagebox.showerror("Input Error", "Please fill in all fields and select files.")
             return
 
         try:
-            start_row = int(start_row)
-            generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row)
-        except ValueError:
-            messagebox.showerror("Input Error", "Starting row must be a valid number.")
+            wb = openpyxl.load_workbook(input_file)
+            sheet1 = wb[wb.sheetnames[0]]
+            if not start_row:
+                start_row = auto_detect_start_row(sheet1)
+
+            generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, int(start_row))
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
     root = tk.Tk()
     root.title("RV Form Generator")
@@ -137,7 +149,7 @@ def main():
     tk.Label(root, text="Document Revision:").grid(row=5, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=revision_var, width=50).grid(row=5, column=1, padx=5, pady=5)
 
-    tk.Label(root, text="Starting Row:").grid(row=6, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="Starting Row (Auto-Detect if Blank):").grid(row=6, column=0, padx=5, pady=5, sticky="e")
     tk.Entry(root, textvariable=start_row_var, width=50).grid(row=6, column=1, padx=5, pady=5)
 
     tk.Button(root, text="Generate RV Forms", command=generate_forms).grid(row=7, column=0, columnspan=3, pady=10)
