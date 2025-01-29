@@ -22,6 +22,31 @@ def format_value(value):
         return value.upper()
     return value
 
+def get_column_indices(sheet):
+    """Get a dictionary mapping header names to column indices."""
+    header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))  # Read the first row
+    column_indices = {}
+    for idx, header in enumerate(header_row):
+        if header:  # Skip empty headers
+            column_indices[header.strip().lower()] = idx  # Use lowercase for case-insensitive matching
+    return column_indices
+
+def map_headers_to_required_fields(column_indices, required_fields):
+    """Map the detected headers to the required fields using flexible matching."""
+    header_mapping = {}
+    for field, possible_names in required_fields.items():
+        for name in possible_names:
+            for header in column_indices:
+                if name.lower() in header.lower():  # Case-insensitive partial match
+                    header_mapping[field] = column_indices[header]
+                    break
+            else:
+                continue
+            break
+        else:
+            raise ValueError(f"Required field '{field}' not found in the input file. Possible names: {possible_names}")
+    return header_mapping
+
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, template_type, progress_var, log_file):
     try:
         # Load the workbook
@@ -42,9 +67,37 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
         with open(log_file, "a") as log:
             log.write(f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Starting RV form generation for project: {project}\n")
 
+            # Get the parent data sheet (Sheet 1)
+            sheet1 = wb[wb.sheetnames[0]]
+
+            # Get column indices based on header names
+            column_indices = get_column_indices(sheet1)
+
+            # Define required fields and their possible header names
+            required_fields = {
+                "Tag": ["Instrument Tag", "Instrument tag", "BMS Tag"],
+                "manufacturer": ["Manufacturer", "Instrument Manufacturer"],
+                "model": ["model", "instrument model", "model number"],
+                "process connection": ["process connection", "connection"],
+                "immersion length": ["immersion length", "Immersion Length (mm)"],
+                "control signal": ["control signal", "actuator control signal"],
+                "min range": ["min range", "range min", "minimum range"],
+                "max range": ["max range", "range max", "maximum range"],
+                "unit": ["unit", "units"],
+                "order code": ["order code", "code"],
+                "valve tag": ["valve tag", "tag", "bms tag"],
+                "valve make / model number": ["valve make", "valve model", "valve make / model number"],
+                "actuator make / model number": ["actuator make", "actuator model", "actuator make / model number"],
+                "line size": ["line size", "Line Size (mm)"],
+                "dial setting": ["dial setting", "setting"],
+                "flow rate": ["flow rate", "rate"],
+            }
+
+            # Map detected headers to required fields
+            header_mapping = map_headers_to_required_fields(column_indices, required_fields)
+
             # Get the total number of rows to process
-            sheet1 = wb[wb.sheetnames[0]]  # Parent data sheet (Sheet 1)
-            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=start_row, values_only=True) if _[1])
+            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=start_row, values_only=True) if _[header_mapping["tag"]])
             progress_step = 100 / total_rows if total_rows > 0 else 100
             progress = 0
 
@@ -52,16 +105,16 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             for index, row in enumerate(sheet1.iter_rows(min_row=start_row, values_only=True), start=1):
                 # Get the data from the row based on template type
                 if template_type == "Instrument":
-                    instrument_tag = format_value(row[1])  # Column B
-                    manufacturer = format_value(row[4])   # Column E
-                    model = format_value(row[5])          # Column F
-                    process_connection = format_value(row[6])  # Column G
-                    immersion_length = format_value(row[10])  # Column K
-                    control_signal = format_value(row[18])    # Column S
-                    min_range = format_value(row[13])         # Column N
-                    max_range = format_value(row[14])         # Column O
-                    unit = format_value(row[15])              # Column P
-                    order_code = format_value(row[9])         # Column J (Order Code)
+                    instrument_tag = format_value(row[header_mapping["tag"]])
+                    manufacturer = format_value(row[header_mapping["manufacturer"]])
+                    model = format_value(row[header_mapping["model"]])
+                    process_connection = format_value(row[header_mapping["process connection"]])
+                    immersion_length = format_value(row[header_mapping["immersion length"]])
+                    control_signal = format_value(row[header_mapping["control signal"]])
+                    min_range = format_value(row[header_mapping["min range"]])
+                    max_range = format_value(row[header_mapping["max range"]])
+                    unit = format_value(row[header_mapping["unit"]])
+                    order_code = format_value(row[header_mapping["order code"]])
 
                     # Populate dynamic fields for the Instrument Template
                     new_sheet = wb.copy_worksheet(template_sheet)
@@ -80,14 +133,14 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                     new_sheet["G11"] = order_code
                     new_sheet["I14"] = "N/A"
                 else:
-                    valve_tag = format_value(row[4])              # Column E (Valve Tag)
-                    valve_make_model = format_value(row[6])       # Column G (Valve Make / Model Number)
-                    actuator_make_model = format_value(row[7])    # Column H (Actuator Make / Model Number)
-                    process_connection = format_value(row[9])     # Column J (Process Connection)
-                    line_size = format_value(row[14])             # Column O (Line Size)
-                    control_signal = format_value(row[16])        # Column Q (Control Signal)
-                    dial_setting = format_value(row[13])          # Column N (Dial Setting)
-                    flow_rate = format_value(row[11])             # Column L (Flow Rate)
+                    valve_tag = format_value(row[header_mapping["valve tag"]])
+                    valve_make_model = format_value(row[header_mapping["valve make / model number"]])
+                    actuator_make_model = format_value(row[header_mapping["actuator make / model number"]])
+                    process_connection = format_value(row[header_mapping["process connection"]])
+                    line_size = format_value(row[header_mapping["line size"]])
+                    control_signal = format_value(row[header_mapping["control signal"]])
+                    dial_setting = format_value(row[header_mapping["dial setting"]])
+                    flow_rate = format_value(row[header_mapping["flow rate"]])
 
                     # Populate dynamic fields for the Valve Template
                     new_sheet = wb.copy_worksheet(template_sheet)
@@ -241,5 +294,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
