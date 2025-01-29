@@ -121,17 +121,21 @@ def main():
     logo_image = PhotoImage(file="subnetlogo.png")
     logo_label = tk.Label(root, image=logo_image, bg="#ffffff")
     logo_label.grid(row=0, column=0, columnspan=3, pady=(10, 20))
+    
+    tk.Label(root, text="Project Name:").grid(row=1, column=0)
+    tk.Entry(root, textvariable=project_var).grid(row=1, column=1)
 
-    tk.Label(root, text="Input File:", bg="#ffffff", font=("Arial", 10)).grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=input_file_var, width=50).grid(row=1, column=1, padx=5, pady=5)
-    tk.Button(root, text="Browse", command=lambda: input_file_var.set(filedialog.askopenfilename())).grid(row=1, column=2, padx=5, pady=5)
+    tk.Label(root, text="Client Name:").grid(row=2, column=0)
+    tk.Entry(root, textvariable=client_var).grid(row=2, column=1)
 
-    tk.Label(root, text="Output Folder:", bg="#ffffff", font=("Arial", 10)).grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    tk.Entry(root, textvariable=output_folder_var, width=50).grid(row=2, column=1, padx=5, pady=5)
-    tk.Button(root, text="Browse", command=lambda: output_folder_var.set(filedialog.askdirectory())).grid(row=2, column=2, padx=5, pady=5)
+    tk.Label(root, text="Reference Document:").grid(row=3, column=0)
+    tk.Entry(root, textvariable=reference_var).grid(row=3, column=1)
 
-    tk.Button(root, text="Generate RV Forms", command=lambda: generate_rv_forms(input_file_var.get(), os.path.join(output_folder_var.get(), "output.xlsx"), project_var.get(), client_var.get(), reference_var.get(), revision_var.get(), int(start_row_var.get() or 6), template_type_var.get(), progress_var, "log.txt")).grid(row=3, column=0, columnspan=3, pady=15)
-
+    tk.Label(root, text="Document Revision:").grid(row=4, column=0)
+    tk.Entry(root, textvariable=revision_var).grid(row=4, column=1)
+    
+    tk.Button(root, text="Generate RV Forms", command=lambda: generate_rv_forms(input_file_var.get(), os.path.join(output_folder_var.get(), "output.xlsx"), project_var.get(), client_var.get(), reference_var.get(), revision_var.get(), int(start_row_var.get() or 6), template_type_var.get(), progress_var, "log.txt")).grid(row=5, column=0, columnspan=3, pady=15)
+    
     root.mainloop()
 
 if __name__ == "__main__":
