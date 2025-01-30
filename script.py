@@ -8,31 +8,44 @@ from tkinter import ttk
 import os
 from tkinter import PhotoImage
 
+# Constants for cell references and formatting
+HEADER_KEYWORDS = ["tag", "manufacturer", "model", "process connection", "immersion length", "control signal", "min range", "max range", "unit", "order code", "valve tag", "valve make / model number", "actuator make / model number", "line size", "dial setting", "flow rate"]
+DEFAULT_START_ROW = 6
+FONT_SIZE = 11
+
 def get_sheet_by_partial_name(wb, partial_name):
+    """Find a sheet by partial name match."""
     for sheet in wb.sheetnames:
         if partial_name.lower() in sheet.lower():
             return sheet
     raise ValueError(f"Sheet with partial name '{partial_name}' not found.")
 
 def format_value(value):
-    """Format the value in uppercase."""
+    """Format the value in uppercase or return 'N/A' if empty."""
     if value is None or (isinstance(value, str) and value.strip().lower() == "n/a"):
         return "N/A"
     if isinstance(value, str):
         return value.upper()
     return value
 
-def get_column_indices(sheet):
+def detect_header_row(sheet):
+    """Dynamically detect the header row based on keyword matching."""
+    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_row=10, values_only=True), start=1):  # Check first 10 rows
+        if any(any(keyword in str(cell).lower() for keyword in HEADER_KEYWORDS) for cell in row):
+            return row_idx
+    raise ValueError("Header row not found in the first 10 rows.")
+
+def get_column_indices(sheet, header_row):
     """Get a dictionary mapping header names to column indices."""
-    header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))  # Read the first row
+    header_row_data = next(sheet.iter_rows(min_row=header_row, max_row=header_row, values_only=True))
     column_indices = {}
-    for idx, header in enumerate(header_row):
+    for idx, header in enumerate(header_row_data):
         if header:  # Skip empty headers
-            column_indices[header.strip().lower()] = idx  # Use lowercase for case-insensitive matching
+            column_indices[header.strip().lower()] = idx
     return column_indices
 
 def map_headers_to_required_fields(column_indices, required_fields):
-    """Map the detected headers to the required fields using flexible matching."""
+    """Map detected headers to required fields using flexible matching."""
     header_mapping = {}
     for field, possible_names in required_fields.items():
         for name in possible_names:
@@ -70,12 +83,16 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             # Get the parent data sheet (Sheet 1)
             sheet1 = wb[wb.sheetnames[0]]
 
+            # Detect header row dynamically
+            header_row = detect_header_row(sheet1)
+            log.write(f"Detected header row: {header_row}\n")
+
             # Get column indices based on header names
-            column_indices = get_column_indices(sheet1)
+            column_indices = get_column_indices(sheet1, header_row)
 
             # Define required fields and their possible header names
             required_fields = {
-                "Tag": ["Instrument Tag", "Instrument tag", "BMS Tag"],
+                "tag": ["Instrument Tag", "Instrument tag", "BMS Tag"],
                 "manufacturer": ["Manufacturer", "Instrument Manufacturer"],
                 "model": ["model", "instrument model", "model number"],
                 "process connection": ["process connection", "connection"],
@@ -97,12 +114,12 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             header_mapping = map_headers_to_required_fields(column_indices, required_fields)
 
             # Get the total number of rows to process
-            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=start_row, values_only=True) if _[header_mapping["tag"]])
+            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=header_row + 1, values_only=True) if _[header_mapping["tag"]])
             progress_step = 100 / total_rows if total_rows > 0 else 100
             progress = 0
 
             # Loop through rows in Sheet 1 starting at the user-defined row
-            for index, row in enumerate(sheet1.iter_rows(min_row=start_row, values_only=True), start=1):
+            for index, row in enumerate(sheet1.iter_rows(min_row=header_row + 1, values_only=True), start=1):
                 # Get the data from the row based on template type
                 if template_type == "Instrument":
                     instrument_tag = format_value(row[header_mapping["tag"]])
@@ -165,7 +182,7 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                 new_sheet["I7"] = rv_form_name
 
                 # Apply alignment and font size to all populated cells
-                font = Font(size=11)  # Size 11 for all text
+                font = Font(size=FONT_SIZE)
                 for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11", "A14", "B14", "D14", "F14", "G14", "H14", "G11", "I14", "F11", "A15", "B15", "D13", "F15", "I15"]:
                     cell = new_sheet[cell_ref]
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -188,14 +205,6 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
         with open(log_file, "a") as log:
             log.write(f"Error: {str(e)}\n")
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
-
-def auto_detect_start_row(sheet, header_mapping):
-    """Automatically detects the row where instruments start, based on the Instrument Tag column."""
-    tag_column_index = header_mapping["tag"]
-    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), start=1):
-        if row[tag_column_index]:  # Check if the detected column has a value
-            return row_idx
-    return 6  # Default to row 6 if no valid row is found
 
 # GUI Implementation
 def main():
@@ -245,12 +254,12 @@ def main():
     client_var = tk.StringVar()
     reference_var = tk.StringVar()
     revision_var = tk.StringVar()
-    start_row_var = tk.StringVar()
+    start_row_var = tk.StringVar(value=str(DEFAULT_START_ROW))
     template_type_var = tk.StringVar(value="Instrument")
     progress_var = tk.DoubleVar()
 
     # Add the logo to the GUI
-    logo_image = PhotoImage(file="C:\\Users\\PC\\Desktop\\RV-Script\\subnetlogo.png")  # Adjust the path as needed
+    logo_image = PhotoImage(file="C:\\Users\\CraigCullen\\RV-Script\\subnetlogo.png")  # Adjust the path as needed
     logo_label = tk.Label(root, image=logo_image, bg="#ffffff")
     logo_label.grid(row=0, column=0, columnspan=3, pady=(10, 20))  # Adjust padding for spacing
 
