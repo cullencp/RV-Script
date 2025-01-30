@@ -189,10 +189,11 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             log.write(f"Error: {str(e)}\n")
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-def auto_detect_start_row(sheet):
-    """Automatically detect the starting row for instruments based on the Instrument Tag column."""
-    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_col=2, values_only=True), start=1):
-        if row[1]:  # Check if the second column (Instrument Tag) has a value
+def auto_detect_start_row(sheet, header_mapping):
+    """Automatically detects the row where instruments start, based on the Instrument Tag column."""
+    tag_column_index = header_mapping["tag"]
+    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), start=1):
+        if row[tag_column_index]:  # Check if the detected column has a value
             return row_idx
     return 6  # Default to row 6 if no valid row is found
 
