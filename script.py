@@ -9,13 +9,14 @@ import os
 from tkinter import PhotoImage
 
 def get_sheet_by_partial_name(wb, partial_name):
+    """Find a sheet by partial name match."""
     for sheet in wb.sheetnames:
         if partial_name.lower() in sheet.lower():
             return sheet
     raise ValueError(f"Sheet with partial name '{partial_name}' not found.")
 
 def format_value(value):
-    """Format the value in uppercase."""
+    """Format the value in uppercase or return 'N/A' if empty."""
     if value is None or (isinstance(value, str) and value.strip().lower() == "n/a"):
         return "N/A"
     if isinstance(value, str):
@@ -31,9 +32,39 @@ def get_column_indices(sheet):
             column_indices[header.strip().lower()] = idx  # Use lowercase for case-insensitive matching
     return column_indices
 
-def map_headers_to_required_fields(column_indices, required_fields):
-    """Map the detected headers to the required fields using flexible matching."""
+def map_headers_to_required_fields(column_indices, template_type):
+    """Map the detected headers to the required fields based on the template type."""
     header_mapping = {}
+    
+    # Define required fields for each template type
+    if template_type == "Instrument":
+        required_fields = {
+            "Tag": ["instrument tag", "tag", "bms tag"],
+            "manufacturer": ["manufacturer", "instrument manufacturer"],
+            "model": ["model", "instrument model", "model number"],
+            "process connection": ["process connection", "connection"],
+            "immersion length": ["immersion length", "immersion length (mm)"],
+            "control signal": ["control signal", "signal"],
+            "min range": ["min range", "range min", "minimum range"],
+            "max range": ["max range", "range max", "maximum range"],
+            "unit": ["unit", "units"],
+            "order code": ["order code", "code"],
+        }
+    elif template_type == "Valve":
+        required_fields = {
+            "valve tag": ["valve tag", "tag", "bms tag", "instrument tag"],
+            "valve make / model number": ["valve make", "valve model", "valve make / model number"],
+            "actuator make / model number": ["actuator make", "actuator model", "actuator make / model number"],
+            "process connection": ["process connection", "connection"],
+            "line size": ["line size", "line size (mm)"],
+            "control signal": ["control signal", "actuator control signal"],
+            "dial setting": ["dial setting", "setting"],
+            "flow rate": ["flow rate", "rate"],
+        }
+    else:
+        raise ValueError(f"Unsupported template type: {template_type}")
+
+    # Map detected headers to required fields
     for field, possible_names in required_fields.items():
         for name in possible_names:
             for header in column_indices:
@@ -45,7 +76,15 @@ def map_headers_to_required_fields(column_indices, required_fields):
             break
         else:
             raise ValueError(f"Required field '{field}' not found in the input file. Possible names: {possible_names}")
+    
     return header_mapping
+
+def auto_detect_start_row(sheet):
+    """Automatically detect the starting row for data based on the first non-empty cell in the second column."""
+    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_col=2, values_only=True), start=1):
+        if row[1]:  # Check if the second column has a value
+            return row_idx
+    return 6  # Default to row 6 if no valid row is found
 
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, template_type, progress_var, log_file):
     try:
@@ -73,31 +112,11 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             # Get column indices based on header names
             column_indices = get_column_indices(sheet1)
 
-            # Define required fields and their possible header names
-            required_fields = {
-                "Tag": ["Instrument Tag", "Instrument tag", "BMS Tag"],
-                "manufacturer": ["Manufacturer", "Instrument Manufacturer"],
-                "model": ["model", "instrument model", "model number"],
-                "process connection": ["process connection", "connection"],
-                "immersion length": ["immersion length", "Immersion Length (mm)"],
-                "control signal": ["control signal", "actuator control signal"],
-                "min range": ["min range", "range min", "minimum range"],
-                "max range": ["max range", "range max", "maximum range"],
-                "unit": ["unit", "units"],
-                "order code": ["order code", "code"],
-                "valve tag": ["valve tag", "tag", "bms tag"],
-                "valve make / model number": ["valve make", "valve model", "valve make / model number"],
-                "actuator make / model number": ["actuator make", "actuator model", "actuator make / model number"],
-                "line size": ["line size", "Line Size (mm)"],
-                "dial setting": ["dial setting", "setting"],
-                "flow rate": ["flow rate", "rate"],
-            }
-
-            # Map detected headers to required fields
-            header_mapping = map_headers_to_required_fields(column_indices, required_fields)
+            # Map detected headers to required fields based on template type
+            header_mapping = map_headers_to_required_fields(column_indices, template_type)
 
             # Get the total number of rows to process
-            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=start_row, values_only=True) if _[header_mapping["tag"]])
+            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=start_row, values_only=True) if _[header_mapping["tag" if template_type == "Instrument" else "valve tag"]])
             progress_step = 100 / total_rows if total_rows > 0 else 100
             progress = 0
 
@@ -189,14 +208,6 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             log.write(f"Error: {str(e)}\n")
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-def auto_detect_start_row(sheet):
-    """Automatically detect the starting row for instruments based on the Instrument Tag column."""
-    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_col=2, values_only=True), start=1):
-        if row[1]:  # Check if the second column (Instrument Tag) has a value
-            return row_idx
-    return 6  # Default to row 6 if no valid row is found
-
-# GUI Implementation
 def main():
     def browse_input_file():
         file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xlsm"), ("All files", "*.*")])
