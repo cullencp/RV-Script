@@ -1,5 +1,4 @@
 import openpyxl
-from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font
 from datetime import datetime
 import tkinter as tk
@@ -7,6 +6,11 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk
 import os
 from tkinter import PhotoImage
+
+# Constants for cell references and formatting
+HEADER_KEYWORDS = ["tag", "manufacturer", "model", "process connection", "immersion length", "control signal", "min range", "max range", "unit", "order code", "valve tag", "valve make / model number", "actuator make / model number", "line size", "dial setting", "flow rate"]
+DEFAULT_START_ROW = 6
+FONT_SIZE = 11
 
 def get_sheet_by_partial_name(wb, partial_name):
     """Find a sheet by partial name match."""
@@ -23,48 +27,26 @@ def format_value(value):
         return value.upper()
     return value
 
-def get_column_indices(sheet):
+def detect_header_row(sheet):
+    """Dynamically detect the header row based on keyword matching."""
+    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_row=10, values_only=True), start=1):  # Check first 10 rows
+        if any(any(keyword in str(cell).lower() for keyword in HEADER_KEYWORDS) for cell in row):
+            return row_idx
+    raise ValueError("Header row not found in the first 10 rows.")
+
+def get_column_indices(sheet, header_row):
     """Get a dictionary mapping header names to column indices."""
-    header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))  # Read the first row
+    header_row_data = next(sheet.iter_rows(min_row=header_row, max_row=header_row, values_only=True))
+    print("Detected Header Row:", header_row_data)  # Debug statement
     column_indices = {}
-    for idx, header in enumerate(header_row):
+    for idx, header in enumerate(header_row_data):
         if header:  # Skip empty headers
-            column_indices[header.strip().lower()] = idx  # Use lowercase for case-insensitive matching
+            column_indices[header.strip().lower()] = idx
     return column_indices
 
-def map_headers_to_required_fields(column_indices, template_type):
-    """Map the detected headers to the required fields based on the template type."""
+def map_headers_to_required_fields(column_indices, required_fields):
+    """Map detected headers to required fields using flexible matching."""
     header_mapping = {}
-    
-    # Define required fields for each template type
-    if template_type == "Instrument":
-        required_fields = {
-            "Tag": ["instrument tag", "tag", "bms tag"],
-            "manufacturer": ["manufacturer", "instrument manufacturer"],
-            "model": ["model", "instrument model", "model number"],
-            "process connection": ["process connection", "connection"],
-            "immersion length": ["immersion length", "immersion length (mm)"],
-            "control signal": ["control signal", "signal"],
-            "min range": ["min range", "range min", "minimum range"],
-            "max range": ["max range", "range max", "maximum range"],
-            "unit": ["unit", "units"],
-            "order code": ["order code", "code"],
-        }
-    elif template_type == "Valve":
-        required_fields = {
-            "valve tag": ["valve tag", "tag", "bms tag", "instrument tag"],
-            "valve make / model number": ["valve make", "valve model", "valve make / model number"],
-            "actuator make / model number": ["actuator make", "actuator model", "actuator make / model number"],
-            "process connection": ["process connection", "connection"],
-            "line size": ["line size", "line size (mm)"],
-            "control signal": ["control signal", "actuator control signal"],
-            "dial setting": ["dial setting", "setting"],
-            "flow rate": ["flow rate", "rate"],
-        }
-    else:
-        raise ValueError(f"Unsupported template type: {template_type}")
-
-    # Map detected headers to required fields
     for field, possible_names in required_fields.items():
         for name in possible_names:
             for header in column_indices:
@@ -75,20 +57,47 @@ def map_headers_to_required_fields(column_indices, template_type):
                 continue
             break
         else:
-            raise ValueError(f"Required field '{field}' not found in the input file. Possible names: {possible_names}")
-    
+            print(f"Warning: Required field '{field}' not found in the input file. Possible names: {possible_names}")
+            header_mapping[field] = None  # Mark the field as missing
     return header_mapping
 
-def auto_detect_start_row(sheet):
-    """Automatically detect the starting row for data based on the first non-empty cell in the second column."""
-    for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_col=2, values_only=True), start=1):
-        if row[1]:  # Check if the second column has a value
-            return row_idx
-    return 6  # Default to row 6 if no valid row is found
+def populate_instrument_template(new_sheet, row_data, header_mapping):
+    """Populate the Instrument template with data from the row."""
+    new_sheet["A11"] = format_value(row_data[header_mapping["tag"]])
+    new_sheet["C11"] = format_value(row_data[header_mapping["manufacturer"]])
+    new_sheet["E11"] = format_value(row_data[header_mapping["model"]])
+    new_sheet["A14"] = format_value(row_data[header_mapping["process connection"]])
+    new_sheet["B14"] = format_value(row_data[header_mapping["immersion length"]])
+    new_sheet["D14"] = format_value(row_data[header_mapping["control signal"]])
+    new_sheet["F14"] = format_value(row_data[header_mapping["min range"]])
+    new_sheet["G14"] = format_value(row_data[header_mapping["max range"]])
+    new_sheet["H14"] = format_value(row_data[header_mapping["unit"]])
+    new_sheet["G11"] = format_value(row_data[header_mapping["order code"]])
+    new_sheet["I14"] = "N/A"
+
+def populate_valve_template(new_sheet, row_data, header_mapping):
+    """Populate the Valve template with data from the row."""
+    new_sheet["A11"] = format_value(row_data[header_mapping["valve tag"]])
+    new_sheet["C11"] = format_value(row_data[header_mapping["valve make / model number"]])
+    new_sheet["F11"] = format_value(row_data[header_mapping["actuator make / model number"]])
+    new_sheet["A15"] = format_value(row_data[header_mapping["process connection"]])
+    new_sheet["B15"] = format_value(row_data[header_mapping["line size"]])
+    new_sheet["D13"] = format_value(row_data[header_mapping["control signal"]])
+    new_sheet["F15"] = format_value(row_data[header_mapping["dial setting"]])
+    new_sheet["I15"] = format_value(row_data[header_mapping["flow rate"]])
+
+def apply_formatting(new_sheet):
+    """Apply alignment and font size to all populated cells."""
+    font = Font(size=FONT_SIZE)
+    for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11", "A14", "B14", "D14", "F14", "G14", "H14", "G11", "I14", "F11", "A15", "B15", "D13", "F15", "I15"]:
+        cell = new_sheet[cell_ref]
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.font = font
 
 def generate_rv_forms(input_file, output_file, project, client, reference_document, document_revision, start_row, template_type, progress_var, log_file):
     try:
         # Load the workbook
+        print(f"Loading input file: {input_file}")
         wb = openpyxl.load_workbook(input_file)
 
         # Get the pre-loaded template sheet dynamically
@@ -109,96 +118,90 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             # Get the parent data sheet (Sheet 1)
             sheet1 = wb[wb.sheetnames[0]]
 
-            # Get column indices based on header names
-            column_indices = get_column_indices(sheet1)
+            # Detect header row dynamically
+            header_row = detect_header_row(sheet1)
+            log.write(f"Detected header row: {header_row}\n")
 
-            # Map detected headers to required fields based on template type
-            header_mapping = map_headers_to_required_fields(column_indices, template_type)
+            # Get column indices based on header names
+            column_indices = get_column_indices(sheet1, header_row)
+
+            # Define required fields and their possible header names
+            required_fields = {
+                "tag": ["Tag", "Instrument Tag", "BMS Tag"],
+                "manufacturer": ["Manufacturer", "Instrument Manufacturer"],
+                "model": ["model", "instrument model", "model number"],
+                "process connection": ["process connection", "connection"],
+                "immersion length": ["immersion length", "Immersion Length (mm)"],
+                "control signal": ["control signal", "actuator control signal"],
+                "min range": ["min range", "range min", "minimum range"],
+                "max range": ["max range", "range max", "maximum range"],
+                "unit": ["unit", "units"],
+                "order code": ["order code", "code"],
+                "valve tag": ["valve tag", "tag", "bms tag"],
+                "valve make / model number": ["valve make", "valve model", "valve make / model number"],
+                "actuator make / model number": ["actuator make", "actuator model", "actuator make / model number"],
+                "line size": ["line size", "Line Size (mm)"],
+                "dial setting": ["dial setting", "setting"],
+                "flow rate": ["flow rate", "rate"],
+            }
+
+            # Map detected headers to required fields
+            header_mapping = map_headers_to_required_fields(column_indices, required_fields)
 
             # Get the total number of rows to process
-            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=start_row, values_only=True) if _[header_mapping["tag" if template_type == "Instrument" else "valve tag"]])
+            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=header_row + 1, values_only=True) if _[header_mapping["tag"]])
             progress_step = 100 / total_rows if total_rows > 0 else 100
             progress = 0
+            progress_var.set(0)  # Reset progress bar
 
             # Loop through rows in Sheet 1 starting at the user-defined row
-            for index, row in enumerate(sheet1.iter_rows(min_row=start_row, values_only=True), start=1):
-                # Get the data from the row based on template type
-                if template_type == "Instrument":
-                    instrument_tag = format_value(row[header_mapping["tag"]])
-                    manufacturer = format_value(row[header_mapping["manufacturer"]])
-                    model = format_value(row[header_mapping["model"]])
-                    process_connection = format_value(row[header_mapping["process connection"]])
-                    immersion_length = format_value(row[header_mapping["immersion length"]])
-                    control_signal = format_value(row[header_mapping["control signal"]])
-                    min_range = format_value(row[header_mapping["min range"]])
-                    max_range = format_value(row[header_mapping["max range"]])
-                    unit = format_value(row[header_mapping["unit"]])
-                    order_code = format_value(row[header_mapping["order code"]])
+            for index, row in enumerate(sheet1.iter_rows(min_row=header_row + 1, values_only=True), start=1):
+                if header_mapping["tag"] is None or row[header_mapping["tag"]] is None:
+                    print(f"Skipping row {index}: 'Tag' field is missing.")
+                    continue
 
-                    # Populate dynamic fields for the Instrument Template
+                # Process the row
+                try:
+                    # Create a new sheet for each row
                     new_sheet = wb.copy_worksheet(template_sheet)
                     rv_form_name = f"RV{str(index).zfill(2)}"
                     new_sheet.title = rv_form_name
 
-                    new_sheet["A11"] = instrument_tag
-                    new_sheet["C11"] = manufacturer
-                    new_sheet["E11"] = model
-                    new_sheet["A14"] = process_connection
-                    new_sheet["B14"] = immersion_length
-                    new_sheet["D14"] = control_signal
-                    new_sheet["F14"] = min_range
-                    new_sheet["G14"] = max_range
-                    new_sheet["H14"] = unit
-                    new_sheet["G11"] = order_code
-                    new_sheet["I14"] = "N/A"
-                else:
-                    valve_tag = format_value(row[header_mapping["valve tag"]])
-                    valve_make_model = format_value(row[header_mapping["valve make / model number"]])
-                    actuator_make_model = format_value(row[header_mapping["actuator make / model number"]])
-                    process_connection = format_value(row[header_mapping["process connection"]])
-                    line_size = format_value(row[header_mapping["line size"]])
-                    control_signal = format_value(row[header_mapping["control signal"]])
-                    dial_setting = format_value(row[header_mapping["dial setting"]])
-                    flow_rate = format_value(row[header_mapping["flow rate"]])
+                    # Populate template-specific fields
+                    if template_type == "Instrument":
+                        populate_instrument_template(new_sheet, row, header_mapping)
+                    else:
+                        populate_valve_template(new_sheet, row, header_mapping)
 
-                    # Populate dynamic fields for the Valve Template
-                    new_sheet = wb.copy_worksheet(template_sheet)
-                    rv_form_name = f"RV{str(index).zfill(2)}"
-                    new_sheet.title = rv_form_name
+                    # Populate static fields for both templates
+                    new_sheet["A5"] = project
+                    new_sheet["E5"] = client
+                    new_sheet["A7"] = reference_document
+                    new_sheet["E7"] = document_revision
+                    new_sheet["I5"] = current_date
+                    new_sheet["I7"] = rv_form_name
 
-                    new_sheet["A11"] = valve_tag
-                    new_sheet["C11"] = valve_make_model
-                    new_sheet["F11"] = actuator_make_model
-                    new_sheet["A15"] = process_connection
-                    new_sheet["B15"] = line_size
-                    new_sheet["D13"] = control_signal
-                    new_sheet["F15"] = dial_setting
-                    new_sheet["I15"] = flow_rate
+                    # Apply formatting
+                    apply_formatting(new_sheet)
 
-                # Populate static fields for both templates
-                new_sheet["A5"] = project
-                new_sheet["E5"] = client
-                new_sheet["A7"] = reference_document
-                new_sheet["E7"] = document_revision
-                new_sheet["I5"] = current_date
-                new_sheet["I7"] = rv_form_name
+                    # Log the processed RV form
+                    log.write(f"Processed: {rv_form_name}\n")
 
-                # Apply alignment and font size to all populated cells
-                font = Font(size=11)  # Size 11 for all text
-                for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11", "A14", "B14", "D14", "F14", "G14", "H14", "G11", "I14", "F11", "A15", "B15", "D13", "F15", "I15"]:
-                    cell = new_sheet[cell_ref]
-                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-                    cell.font = font
-
-                # Log the processed RV form
-                log.write(f"Processed: {rv_form_name}\n")
+                except Exception as e:
+                    log.write(f"Error processing row {index}: {str(e)}\n")
 
                 # Update progress bar
                 progress += progress_step
                 progress_var.set(progress)
 
             # Save the updated workbook
-            wb.save(output_file)
+            try:
+                print(f"Saving output file: {output_file}")
+                wb.save(output_file)
+                print("File saved successfully.")
+            except Exception as e:
+                raise Exception(f"Failed to save the file: {str(e)}")
+
             progress_var.set(100)  # Ensure progress reaches 100%
             log.write("RV form generation completed successfully.\n")
             messagebox.showinfo("Success", f"RV forms generated successfully! Output saved as {output_file}")
@@ -208,6 +211,7 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             log.write(f"Error: {str(e)}\n")
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
+# GUI Implementation
 def main():
     def browse_input_file():
         file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xlsm"), ("All files", "*.*")])
@@ -255,7 +259,7 @@ def main():
     client_var = tk.StringVar()
     reference_var = tk.StringVar()
     revision_var = tk.StringVar()
-    start_row_var = tk.StringVar()
+    start_row_var = tk.StringVar(value=str(DEFAULT_START_ROW))
     template_type_var = tk.StringVar(value="Instrument")
     progress_var = tk.DoubleVar()
 
