@@ -5,16 +5,40 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
 import os
+import sys
 from tkinter import PhotoImage
+from openpyxl.drawing.image import Image as XLImage  # For inserting images
 
 # Constants for cell references and formatting
-HEADER_KEYWORDS = ["tag", "manufacturer", "model", "process connection", "immersion length", 
-                   "control signal", "min range", "max range", "unit", "order code", 
-                   "valve make / model number", "actuator make / model number", 
-                   "line size", "dial setting", "flow rate"]
+HEADER_KEYWORDS = [
+    "tag", "manufacturer", "model", "process connection", "immersion length",
+    "control signal", "min range", "max range", "unit", "order code",
+    "valve make / model number", "actuator make / model number",
+    "line size", "dial setting", "flow rate"
+]
 DEFAULT_START_ROW = 6
 FONT_SIZE = 11
 
+# --- Resource Path Helper ---
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller."""
+    try:
+        base_path = sys._MEIPASS  # PyInstaller temporary folder
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# --- Unique Identifier Lookup Helper ---
+def get_instrument_no_index(column_indices):
+    """Return the index for the unique identifier column using several possible keys.
+       This function does not use the 'or' chain so that an index of 0 is accepted."""
+    possible_keys = ["no.", "no", "item no.", "item no", "no:", "item no:"]
+    for key in possible_keys:
+        if key in column_indices:
+            return column_indices[key]
+    return None
+
+# --- Excel and Template Functions ---
 def get_sheet_by_partial_name(wb, partial_name):
     """Find a sheet by partial name match."""
     for sheet in wb.sheetnames:
@@ -43,8 +67,11 @@ def get_column_indices(sheet, header_row):
     print("Detected Header Row:", header_row_data)  # Debug statement
     column_indices = {}
     for idx, header in enumerate(header_row_data):
-        if header:  # Skip empty headers
+        if header:
+            # Print each header with its index for debugging purposes.
+            print(f"Header at index {idx}: {repr(header)}")
             column_indices[header.strip().lower()] = idx
+    print("Column Indices:", column_indices)  # Debug: Print complete dictionary
     return column_indices
 
 def map_headers_to_required_fields(column_indices, required_fields):
@@ -53,7 +80,7 @@ def map_headers_to_required_fields(column_indices, required_fields):
     for field, possible_names in required_fields.items():
         for name in possible_names:
             for header in column_indices:
-                if name.lower() in header.lower():  # Case-insensitive partial match
+                if name.lower() in header.lower():
                     header_mapping[field] = column_indices[header]
                     break
             else:
@@ -61,12 +88,12 @@ def map_headers_to_required_fields(column_indices, required_fields):
             break
         else:
             print(f"Warning: Required field '{field}' not found in the input file. Possible names: {possible_names}")
-            header_mapping[field] = None  # Mark the field as missing
+            header_mapping[field] = None
     return header_mapping
 
 def populate_instrument_template(new_sheet, row_data, header_mapping):
     """Populate the Instrument template with data from the row.
-       If the tag cell contains multiple lines, only the first line is used."""
+       For instruments, the control signal goes into cell D14."""
     tag_val = row_data[header_mapping["tag"]]
     if tag_val is not None:
         tag_val = tag_val.splitlines()[0].strip()
@@ -75,7 +102,7 @@ def populate_instrument_template(new_sheet, row_data, header_mapping):
     new_sheet["E11"] = format_value(row_data[header_mapping["model"]])
     new_sheet["A14"] = format_value(row_data[header_mapping["process connection"]])
     new_sheet["B14"] = format_value(row_data[header_mapping["immersion length"]])
-    new_sheet["D14"] = format_value(row_data[header_mapping["control signal"]])
+    new_sheet["D14"] = format_value(row_data[header_mapping["control signal"]])  # Instrument: D14
     new_sheet["F14"] = format_value(row_data[header_mapping["min range"]])
     new_sheet["G14"] = format_value(row_data[header_mapping["max range"]])
     new_sheet["H14"] = format_value(row_data[header_mapping["unit"]])
@@ -84,7 +111,7 @@ def populate_instrument_template(new_sheet, row_data, header_mapping):
 
 def populate_valve_template(new_sheet, row_data, header_mapping):
     """Populate the Valve template with data from the row.
-       Only the first tag number is used if multiple exist."""
+       For valves, the control signal goes into cell D15."""
     tag_val = row_data[header_mapping["tag"]]
     if tag_val is not None:
         tag_val = tag_val.splitlines()[0].strip()
@@ -93,27 +120,28 @@ def populate_valve_template(new_sheet, row_data, header_mapping):
     new_sheet["F11"] = format_value(row_data[header_mapping["actuator make / model number"]])
     new_sheet["A15"] = format_value(row_data[header_mapping["process connection"]])
     new_sheet["B15"] = format_value(row_data[header_mapping["line size"]])
-    new_sheet["D13"] = format_value(row_data[header_mapping["control signal"]])
+    new_sheet["D15"] = format_value(row_data[header_mapping["control signal"]])  # Valve: D15
     new_sheet["F15"] = format_value(row_data[header_mapping["dial setting"]])
     new_sheet["I15"] = format_value(row_data[header_mapping["flow rate"]])
 
 def apply_formatting(new_sheet):
-    """Apply alignment and font size to all populated cells."""
-    font = Font(size=FONT_SIZE)
-    for cell_ref in ["A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11", 
-                     "A14", "B14", "D14", "F14", "G14", "H14", "G11", "I14", 
-                     "F11", "A15", "B15", "D13", "F15", "I15"]:
+    """Apply alignment and font settings to all populated cells."""
+    font = Font(name="Calibri", size=FONT_SIZE, bold=False)
+    for cell_ref in [
+        "A5", "E5", "A7", "E7", "I5", "I7", "A11", "C11", "E11",
+        "A14", "B14", "D14", "F14", "G14", "H14", "G11", "I14",
+        "F11", "A15", "B15", "F15", "I15", "D15"
+    ]:
         cell = new_sheet[cell_ref]
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.font = font
 
-def generate_rv_forms(input_file, output_file, project, client, reference_document, 
+def generate_rv_forms(input_file, output_file, project, client, reference_document,
                       document_revision, start_row, template_type, progress_var, log_file):
     try:
         print(f"Loading input file: {input_file}")
         wb = openpyxl.load_workbook(input_file)
 
-        # Select the template sheet and required fields based on the template type
         if template_type == "Instrument":
             template_sheet_name = get_sheet_by_partial_name(wb, "RV Instrument  SUB-TF-01")
             required_fields = {
@@ -131,14 +159,14 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
         else:
             template_sheet_name = get_sheet_by_partial_name(wb, "RV Valve SUB-TF-02")
             required_fields = {
-                "tag": ["Tag", "Instrument Tag", "BMS Tag"],
+                "tag": ["BMS Tag", "Instrument Tag"],
                 "valve make / model number": ["valve make", "valve model", "valve make / model number"],
                 "actuator make / model number": ["actuator make", "actuator model", "actuator make / model number"],
                 "process connection": ["process connection", "connection"],
-                "line size": ["line size", "Line Size (mm)"],
-                "control signal": ["control signal", "actuator control signal"],
-                "dial setting": ["dial setting", "setting"],
-                "flow rate": ["flow rate", "rate"],
+                "line size": ["line size", "line size (mm)", "Line Size", "Valve Size", "Valve Size[mm]"],
+                "control signal": ["control signal", "actuator control signal", "signal type", "Valve Signal", "Actuator Control signal"],
+                "dial setting": ["dial setting", "setting", "dial"],
+                "flow rate": ["flow rate", "rate", "flow", "Flow Rate"],
             }
 
         template_sheet = wb[template_sheet_name]
@@ -147,10 +175,8 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
         with open(log_file, "a") as log:
             log.write(f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Starting RV form generation for project: {project}\n")
 
-            # Use the first sheet as the parent data sheet
             sheet1 = wb[wb.sheetnames[0]]
 
-            # Attempt auto-detection of header row; use fallback if provided
             try:
                 header_row = detect_header_row(sheet1)
                 log.write(f"Detected header row: {header_row}\n")
@@ -161,36 +187,35 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                 else:
                     raise e
 
-            # Build header mapping
             column_indices = get_column_indices(sheet1, header_row)
             header_mapping = map_headers_to_required_fields(column_indices, required_fields)
 
-            # Check that the required "tag" field exists
+            print("Header Mapping:", header_mapping)  # Debug output
+
             check_field = "tag"
             if header_mapping.get(check_field) is None:
                 raise ValueError(f"Required field '{check_field}' not found. Possible names: {required_fields[check_field]}")
 
-            # Count total rows using the check field (for progress purposes)
-            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=header_row + 1, values_only=True) if _[header_mapping[check_field]])
+            total_rows = sum(1 for _ in sheet1.iter_rows(min_row=header_row + 1, values_only=True)
+                             if _[header_mapping[check_field]])
             progress_step = 100 / total_rows if total_rows > 0 else 100
             progress = 0
             progress_var.set(0)
 
-            # Use a set to track processed instrument IDs (from the "No." column)
+            instrument_no_index = get_instrument_no_index(column_indices)
+            if instrument_no_index is None:
+                raise ValueError("Unique identifier column not found (expected 'No.', 'No', 'Item No.' or 'Item No').")
+
             processed_ids = set()
-            # Use a separate counter for naming RV forms sequentially
             rv_counter = 1
 
             for row in sheet1.iter_rows(min_row=header_row + 1, values_only=True):
-                # Check that the tag field exists; if not, skip this row.
                 tag_val = row[header_mapping[check_field]]
                 if tag_val is None:
                     print("Skipping row because the tag field is missing.")
                     continue
 
-                # Duplicate check: assume the "No." column (lowercase "no.") holds a unique instrument number.
-                instrument_number = row[column_indices.get("no.", 0)]
-                # If the instrument number is missing (None or empty), skip the row as a duplicate entry.
+                instrument_number = row[instrument_no_index]
                 if not instrument_number:
                     print("Skipping row due to empty instrument number (likely an extra tag row).")
                     continue
@@ -201,17 +226,14 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
 
                 try:
                     new_sheet = wb.copy_worksheet(template_sheet)
-                    # Use the rv_counter to generate a sequential sheet name.
-                    rv_form_name = f"RV{str(rv_counter).zfill(2)}"
+                    rv_form_name = f"RV{rv_counter:02d}"  # Consistent two-digit formatting
                     new_sheet.title = rv_form_name
 
-                    # Populate the appropriate template
                     if template_type == "Instrument":
                         populate_instrument_template(new_sheet, row, header_mapping)
                     else:
                         populate_valve_template(new_sheet, row, header_mapping)
 
-                    # Populate static fields
                     new_sheet["A5"] = project
                     new_sheet["E5"] = client
                     new_sheet["A7"] = reference_document
@@ -220,9 +242,27 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                     new_sheet["I7"] = rv_form_name
 
                     apply_formatting(new_sheet)
-                    log.write(f"Processed: {rv_form_name} (Instrument Number: {instrument_number})\n")
+                    
+                    # --- Insert the template logo into cell C1 so it spans columns C to F ---
+                    try:
+                        templatelogo_path = resource_path(os.path.join("resources", "templatelogo.png"))
+                        if os.path.exists(templatelogo_path):
+                            tmpl_img = XLImage(templatelogo_path)
+                            # Calculate dimensions:
+                            # 1.67 cm in points: (1.67/2.54)*72 ≈ 47.3, scaled by 1.35 gives ≈ 63.9 points (use 64)
+                            # 7.22 cm in points: (7.22/2.54)*72 ≈ 204.7, scaled by 1.35 gives ≈ 276.3 points (use 276)
+                            tmpl_img.height = 64
+                            tmpl_img.width = 276
+                            tmpl_img.rotation = 0
+                            tmpl_img.anchor = "C1"  # Anchor at C1 (so it spans from C to F as desired)
+                            new_sheet.add_image(tmpl_img)
+                        else:
+                            print("Template logo file not found at:", templatelogo_path)
+                    except Exception as img_err:
+                        print("Error inserting template logo:", img_err)
+                    # --- End of template logo insertion ---
 
-                    # Increment the form counter only when a form is generated.
+                    log.write(f"Processed: {rv_form_name} (Instrument Number: {instrument_number})\n")
                     rv_counter += 1
 
                 except Exception as e:
@@ -231,7 +271,6 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
                 progress += progress_step
                 progress_var.set(progress)
 
-            # Hide the template sheet so that only the generated RV forms appear
             template_sheet.sheet_state = 'hidden'
 
             try:
@@ -250,7 +289,7 @@ def generate_rv_forms(input_file, output_file, project, client, reference_docume
             log.write(f"Error: {str(e)}\n")
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-# GUI Implementation
+# --- GUI Implementation ---
 def main():
     def browse_input_file():
         file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xlsm"), ("All files", "*.*")])
@@ -266,7 +305,7 @@ def main():
         client = client_var.get()
         reference_document = reference_var.get()
         document_revision = revision_var.get()
-        start_row = start_row_var.get().strip()  # Fallback header row (optional)
+        start_row = start_row_var.get().strip()  # Optional fallback header row.
         output_folder = output_folder_var.get()
         template_type = template_type_var.get()
 
@@ -291,25 +330,22 @@ def main():
     root.configure(bg="#ffffff")
     root.geometry("600x500")
 
-    # Set the window icon using a relative path to the ICO file
     try:
         icon_path = os.path.join("resources", "subnetlogo.ico")
         root.iconbitmap(icon_path)
     except Exception as e:
         print("Window icon not set:", e)
 
-    # Variables
     input_file_var = tk.StringVar()
     output_folder_var = tk.StringVar()
     project_var = tk.StringVar()
     client_var = tk.StringVar()
     reference_var = tk.StringVar()
     revision_var = tk.StringVar()
-    start_row_var = tk.StringVar(value="")  # Optional fallback header row
+    start_row_var = tk.StringVar(value="")  # Optional fallback.
     template_type_var = tk.StringVar(value="Instrument")
     progress_var = tk.DoubleVar()
 
-    # Load the PNG logo using a relative path; ensure the file is located in the "resources" folder
     try:
         logo_path = os.path.join("resources", "subnetlogo.png")
         logo_image = PhotoImage(file=logo_path)
@@ -357,4 +393,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
 

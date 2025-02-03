@@ -5,7 +5,7 @@ a = Analysis(
     ['script.py'],
     pathex=[],
     binaries=[],
-    datas=[('resources\\subnetlogo.png', 'resources')],
+    datas=[('resources\\subnetlogo.png', 'resources'), ('resources\\templatelogo.png', 'resources')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
